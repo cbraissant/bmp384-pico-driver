@@ -198,18 +198,6 @@ class BMP384:
         '''
         return self._drdy_temp
 
-
-    @property
-    def raw_pressure(self) -> int:
-        '''Pressure value as a 24-bit data'''
-        return self._press
-
-
-    @property
-    def raw_temperature(self) -> int:
-        '''Temperature value as a 24-bit data'''
-        return self._temp
-    
     
     @property
     def time(self) -> int:
@@ -536,11 +524,11 @@ class BMP384:
             100: x16    x16 oversampling.
             101: x32    x32 oversampling.
         '''
-        return self._osr_p
+        return self._osr_t
     
     @temperature_oversampling.setter
     def temperature_oversampling(self, data:int) -> None:
-        self._osr_p = data
+        self._osr_t = data
 
 
     @property
