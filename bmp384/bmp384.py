@@ -3,7 +3,7 @@
 # Author: Chris Braissant
 # License: MIT
 
-
+import struct
 from machine import SPI, Pin
 from register import Register, Bits
 
@@ -37,6 +37,7 @@ _PWR_CTRL = 0x1B
 _OSR = 0x1C
 _ODR = 0x1D
 _CONFIG = 0x1F
+_CALIB_COEFF = 0x31
 _CMD = 0x7E
 
 # Commands
@@ -56,6 +57,7 @@ class BMP384:
     _fifo_data = Register(_FIFO_DATA)
     _fifo_wtm = Register(_FIFO_WTM_0, 2)
     _cmd = Register(_CMD)
+    _calib_coeffs = Register(_CALIB_COEFF, 21)
 
     # ERR_REG
     _fatal_err = Bits(_ERR_REG, 0)
@@ -118,6 +120,8 @@ class BMP384:
     def __init__(self, spi:SPI, cs:Pin):
         self.spi = spi
         self.cs = cs
+        self.reset()
+        self._read_coefficients()
 
 
     @property
@@ -591,3 +595,39 @@ class BMP384:
         '''
         self._cmd = _SOFTRESET   
     
+
+    def _read_coefficients(self) -> None:
+        '''
+        Read the calibration coefficients
+        The format string for the whole coefficient is:
+        "<HHbhhbbHHbbhbb" = T1,T2,T3,P1,P2,P3,P4,P5,P6,P7,P8,P9,P10,P11
+        '''
+        calib_coeffs_int = self._calib_coeffs
+
+        # as the value of the register return an integer, that value has
+        # to be converted to a bytearray, and then unpacked
+        calib_coeffs_byte = calib_coeffs_int.to_bytes(16, 'little')
+        format_string = "<HHbhhbbHHbbhbb"
+        calib_coeffs = struct.unpack(format_string, calib_coeffs_byte)
+
+        # The coefficients have to be converted to floating point number
+        # by the formulas shown in datasheet 9.1
+        self._temp_coeffs = [
+            calib_coeffs[0] / (2 ** -8.0),
+            calib_coeffs[1] / (2 ** 30.0),
+            calib_coeffs[2] / (2 ** 48.0),
+        ]
+
+        self._press_coeffs = [
+            calib_coeffs[3] / (2 ** 20.0),
+            calib_coeffs[4] / (2 ** 29.0),
+            calib_coeffs[5] / (2 ** 32.0),
+            calib_coeffs[6] / (2 ** 37.0),
+            calib_coeffs[7] / (2 ** -3.0),
+            calib_coeffs[8] / (2 ** 6.0),
+            calib_coeffs[9] / (2 ** 8.0),
+            calib_coeffs[10] / (2 ** 15.0),
+            calib_coeffs[11] / (2 ** 48.0),
+            calib_coeffs[12] / (2 ** 48.0),
+            calib_coeffs[13] / (2 ** 65.0),
+        ]
