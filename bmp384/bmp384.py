@@ -8,6 +8,7 @@ from machine import SPI, Pin
 from register import Register, Bits
 
 
+# Registers
 _CHIP_ID = 0x00
 _ERR_REG = 0x02
 _STATUS = 0x03
@@ -37,6 +38,11 @@ _OSR = 0x1C
 _ODR = 0x1D
 _CONFIG = 0x1F
 _CMD = 0x7E
+
+# Commands
+_EXTMODE_EN_MIDDLE = 0x34
+_FIFO_FLUSH = 0xB0
+_SOFTRESET = 0xB6
 
 
 class BMP384:
@@ -538,11 +544,50 @@ class BMP384:
         '''
         Output Data Rate (ODR) prescaler.
         Set the sampling period and frequency divider.
-        The final ODR is: 200 Hz / 2^value
         Allowed values are 0 to 17. Other values are saturated at 17.
+        Sampling frequency: 200 Hz / 2^value
+        Sampling period: 5ms * 2^value
         '''
         return self._odr_se
     
     @odr_prescaler.setter
     def odr_prescaler(self, data:int) -> None:
         self._odr_se = data
+
+    
+    @property
+    def iir_filter_coefficient(self) -> int:
+        '''
+        Filter coefficient for IIR filter
+        Coefficient = 2^value - 1
+        000:    0 (bypass-mode)
+        001:    1
+        010:    3
+        011:    7
+        100:    15
+        101:    31
+        110:    63
+        111:    127
+        '''
+        return self._iir_filter
+    
+    @iir_filter_coefficient.setter
+    def iir_filter_coefficient(self, data:int) -> None:
+        self._iir_filter = data
+
+    
+    def fifo_flush(self) -> None:
+        '''
+        Clears all data in the FIFO.
+        Does not change FIFO_CONFIG registers
+        '''
+        self._cmd = _FIFO_FLUSH
+
+    
+    def reset(self) -> None:
+        '''
+        Triggers a reset.
+        All user configuration settings are overwritten with their default state
+        '''
+        self._cmd = _SOFTRESET   
+    
