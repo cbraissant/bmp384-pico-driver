@@ -5,7 +5,7 @@
 
 import struct
 from machine import SPI, Pin
-from register import Register, Bits
+from bmp_register import Register, Bits
 
 
 # Registers
@@ -44,7 +44,6 @@ _CMD = 0x7E
 _EXTMODE_EN_MIDDLE = 0x34
 _FIFO_FLUSH = 0xB0
 _SOFTRESET = 0xB6
-
 
 class BMP384:
     
