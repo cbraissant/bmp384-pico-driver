@@ -631,3 +631,41 @@ class BMP384:
             calib_coeffs[12] / (2 ** 48.0),
             calib_coeffs[13] / (2 ** 65.0),
         ]
+
+
+    @property
+    def temperature(self) -> float:
+        '''Temperature in °C'''
+        raw_temperature = self._temp
+
+        T1, T2, T3 = self._temp_coeffs
+        
+        pd1 = raw_temperature - T1
+        pd2 = pd1 * T2
+        return pd2 + (pd1 * pd1) * T3
+
+
+    @property
+    def pressure(self) -> float:
+        '''Pressure in Pa'''
+        temperature = self.temperature
+        raw_pressure = self._press        
+
+        P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11 = self._press_coeffs
+
+        pd1 = P6 * temperature
+        pd2 = P7 * temperature ** 2
+        pd3 = P8 * temperature ** 3
+        po1 = P5 + pd1 + pd2 + pd3
+
+        pd1 = P2 * temperature
+        pd2 = P3 * temperature ** 2
+        pd3 = P4 * temperature ** 3
+        po2 = raw_pressure * (P1 + pd1 + pd2 + pd3)
+
+        pd1 = raw_pressure ** 2
+        pd2 = P9 + P10 * temperature
+        pd3 = pd1 * pd2
+        pd4 = pd3 + P11 * raw_pressure ** 3.0
+
+        return po1 + po2 + pd4
