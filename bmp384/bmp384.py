@@ -5,7 +5,7 @@
 
 import struct
 from machine import SPI, Pin
-from bmp_register import Register, Bits
+from .bmp_register import Register, Bits
 
 
 # Registers
@@ -120,6 +120,8 @@ class BMP384:
         self.spi = spi
         self.cs = cs
         self.reset()
+        self._press_en = 1
+        self._temp_en = 1
         self._read_coefficients()
 
 
@@ -593,7 +595,7 @@ class BMP384:
 
         # as the value of the register return an integer, that value has
         # to be converted to a bytearray, and then unpacked
-        calib_coeffs_byte = calib_coeffs_int.to_bytes(16, 'little')
+        calib_coeffs_byte = calib_coeffs_int.to_bytes(21, 'little')
         format_string = "<HHbhhbbHHbbhbb"
         calib_coeffs = struct.unpack(format_string, calib_coeffs_byte)
 
@@ -656,3 +658,36 @@ class BMP384:
         pd4 = pd3 + P11 * raw_pressure ** 3.0
 
         return po1 + po2 + pd4
+    
+
+     # def selftest(self) -> int:
+        '''
+        - soft reset
+
+        - wait for soft reset (2ms)
+        
+        - read chip id
+        - read trimming data
+
+        - verify chip id
+        - verify trimming data
+        
+        - read pressure
+        - read temperature
+
+        - wait for data conversion
+
+        - compare to plausible limits
+        - compare to plausible limits
+
+        - return result code
+
+        00: sensor ok
+        10: Communication error or wrong device
+        20: Trimming data out of bound
+        30: Temperature bond wire failure or MEMS defect
+        31: Pressure bond wire failure or MEMS defect
+        40: Implausible temperature (default limits: 0..40°C)
+        41: Implausible pressure (default limits; 900...1100 hPa)
+
+        '''
